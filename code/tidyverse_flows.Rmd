@@ -1,0 +1,438 @@
+---
+title: "tidyverse_flows"
+author: "geodevm"
+date: "2/15/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE)
+```
+
+```{r}
+library(tidyverse)
+library(nycflights13)
+```
+
+##Data visualization.
+
+We'll be using the mpg dataset from ggplot2.
+
+```{r}
+mpg
+```
+
+Now we'll create a gglplot using geom_point.
+
+
+```{r}
+ggplot(mpg) +
+  geom_point(aes(displ, hwy))
+# The template for these graphs would be the following:
+# ggplot(data = <DATA>) +
+#   <GEOM_FN>(mapping = aes(<MAPPINGS: x = x, y = y>))
+```
+
+Create aesthetic mappings.
+
+```{r}
+ggplot(mpg) +
+  geom_point(aes(displ, hwy, color = class))
+# Can also use:
+#   size =
+ggplot(mpg) +
+  geom_point(aes(displ, hwy, size = class))
+#   alpha =
+ggplot(mpg) +
+  geom_point(aes(displ, hwy, alpha = class))
+#   shape =
+ggplot(mpg) +
+  geom_point(aes(displ, hwy, shape = class))
+```
+
+We can also just define the aesthetics outside of the mapping argument.
+
+```{r}
+ggplot(mpg) +
+  geom_point(mapping = aes(displ, hwy), color = "blue")
+```
+
+This .png shows the different types of shapes that can be used.
+
+https://d33wubrfki0l68.cloudfront.net/e28a1b57b6622cf67fd8a7e01c6a9955914f8fe9/635be/visualize_files/figure-html/shapes-1.png
+
+Size can be specified in mm.
+
+To facet within one dataset, use the facet_wrap() function
+
+```{r}
+ggplot(mpg) +
+  geom_point(aes(displ, hwy)) +
+  facet_wrap(~ class, nrow = 2)
+```
+
+The facet_grid() function is another way to facet on two-variable axes.
+
+```{r}
+ggplot(mpg) +
+  geom_point(aes(displ, hwy)) +
+  facet_grid(drv ~ cyl)
+```
+
+If you only want to display rows or columns, using "." as an argument for facet grid will ensure that there is only one dimension.
+
+```{r}
+ggplot(mpg) +
+  geom_point(aes(displ, hwy)) +
+  facet_grid(. ~ cyl)
+ggplot(mpg) +
+  geom_point(aes(displ, hwy)) +
+  facet_grid(drv ~ .)
+```
+
+Now for a few examples of different geoms
+
+```{r}
+ggplot(mpg) + 
+  geom_smooth(aes(displ, hwy))
+ggplot(mpg) + 
+  geom_smooth(aes(displ, hwy, linetype = drv))
+ggplot(mpg, aes(displ, hwy)) + 
+  geom_smooth(aes(linetype = drv, color = drv)) +
+  geom_point(aes(color = drv))
+ggplot(mpg, aes(x = displ, y = hwy)) + 
+  geom_point() +
+  geom_smooth()
+```
+
+Mixed mapping aesthetics:
+
+```{r}
+ggplot(mpg, aes(displ, hwy)) + 
+  geom_point(aes(color = class)) + 
+  geom_smooth()
+ggplot(mpg, aes(displ, hwy)) + 
+  geom_point(aes(color = class)) + 
+  geom_smooth(data = filter(mpg, class == "subcompact"), se = FALSE)
+```
+
+Stat Transformations
+
+geom_bar uses a count transformation
+
+```{r}
+ggplot(diamonds) +
+  geom_bar(aes(cut))
+# Same as:
+ggplot(diamonds) + 
+  stat_count(aes(cut))
+```
+
+You can change the stat of certain type of plot:
+
+```{r}
+demo <- tribble(
+  ~cut,         ~freq,
+  "Fair",       1610,
+  "Good",       4906,
+  "Very Good",  12082,
+  "Premium",    13791,
+  "Ideal",      21551
+)
+
+ggplot(demo) +
+  geom_bar(aes(cut, freq), stat = "identity")
+```
+
+You can also do things like display the proportion instead of the count:
+
+```{r}
+ggplot(diamonds) + 
+  geom_bar(aes(cut, stat(prop), group = 1))
+```
+
+Or you can highlight different values within the data set with a summary plot:
+
+```{r}
+ggplot(diamonds) + 
+  stat_summary(aes(x = cut, y = depth),
+    fun.min = min,
+    fun.max = max,
+    fun = median
+  )
+```
+
+Bar chart adjustments:
+
+```{r}
+ggplot(diamonds) + 
+  geom_bar(aes(cut, color = cut))
+ggplot(diamonds) + 
+  geom_bar(aes(cut, fill = cut))
+ggplot(diamonds) + 
+  geom_bar(aes(cut, fill = clarity))
+ggplot(diamonds, aes(cut, fill = clarity)) + 
+  geom_bar(alpha = 1/5, position = "identity")
+ggplot(diamonds, aes(cut, color = clarity)) + 
+  geom_bar(fill = NA, position = "identity")
+ggplot(diamonds) + 
+  geom_bar(aes(cut, fill = clarity), position = "fill")
+ggplot(diamonds) + 
+  geom_bar(aes(cut, fill = clarity), position = "dodge")
+```
+
+Enhanced visualization of scatter plots using jitter.
+
+```{r}
+ggplot(mpg) + 
+  geom_point(aes(displ, hwy))
+ggplot(mpg) + 
+  geom_point(aes(displ, hwy), position = "jitter")
+```
+
+Coordinate flips can be useful for graphs where a categorical variable might appear on the x axis:
+
+```{r}
+ggplot(data = mpg, mapping = aes(x = class, y = hwy)) + 
+  geom_boxplot()
+ggplot(data = mpg, mapping = aes(x = class, y = hwy)) + 
+  geom_boxplot() +
+  coord_flip()
+```
+
+If you're doing a map, you can also adjust the coordinates in ggplot to transform into a more readable geographic transformation
+
+```{r}
+nz <- map_data("nz")
+
+ggplot(nz, aes(long, lat, group = group)) +
+  geom_polygon(fill = "white", color = "black")
+
+ggplot(nz, aes(long, lat, group = group)) +
+  geom_polygon(fill = "white", color = "black") +
+  coord_quickmap()
+```
+
+If we want the coordinates to flip to become polar, we can use coord_polar()
+
+```{r}
+bar <- ggplot(diamonds) + 
+  geom_bar(aes(cut, fill = cut), 
+    show.legend = FALSE,
+    width = 1
+  ) + 
+  theme(aspect.ratio = 1) +
+  labs(x = NULL, y = NULL)
+
+bar + coord_flip()
+bar + coord_polar()
+```
+
+The overall structure of ggplot is:
+
+ggplot(<DATA>) + 
+  <GEOM_FUNCTION(S)>(
+     aes(<MAPPINGS>),
+     stat = <STAT>, 
+     position = <POSITION>
+  ) +
+  <COORDINATE_FUNCTION> +
+  <FACET_FUNCTION>
+  
+## Data Transformation.
+
+```{r}
+flights
+```
+
+Some of the data types in tibbles:
+int: integer
+dbl: double (real numbers)
+chr: character/string
+dttm: date-times
+lgl: logical, T/F
+fctr: factors
+date: date
+
+Main dplyr functions:
+filter() picks observations based on values
+arrange() reorders rows
+select() picks variables by their names
+mutate() creates a new variables with functions of existing variables
+summarise() collapses many values into a single summary
+group_by() changes the scope of the above functions
+
+### Using filter():
+
+```{r}
+jan1 <- filter(flights, month == 1, day == 1)
+jan1
+
+dec25 <- filter(flights, month == 12, day == 25)
+dec25
+```
+
+Package dplyr also offers near() to evaluate floats, where there may be slight imprecision in testing equality. This could be useful for filtering.
+
+```{r}
+sqrt(2) ^ 2 == 2
+1 / 49 * 49 == 1
+near(sqrt(2) ^ 2, 2)
+near(1 / 49 * 49, 1)
+```
+
+The Boolean operators for filter are...
+&: "and"
+|: "or"
+!: "not"
+
+Don't use && or || for filter arguments.
+
+Other useful operators...
+%in%: x %in% y selects every row where x is one of the values in y.
+
+There are usually multiple ways to write the same thing:
+
+```{r}
+filter(flights, month == 11| month == 12)
+filter(flights, month %in% c(11, 12))
+```
+
+```{r}
+filter(flights, !(arr_delay > 120 | dep_delay > 120))
+filter(flights, arr_delay <= 120, dep_delay <= 120)
+```
+
+Filter excludes rows that are NA by default. IF you want to preserve that, is.na must be specified as a condition. 
+
+```{r}
+df <- tibble(x = c(1, NA, 3))
+filter(df, x > 1)
+filter(df, is.na(x) | x > 1)
+```
+
+### Using arrange()
+
+This function seems to be somewhat limited in scope. Just reorders rows.
+
+```{r}
+arrange(flights, year, month, day)
+```
+
+Re-order with desc() for descending.
+
+```{r}
+arrange(flights, desc(dep_delay))
+```
+
+NAs are always at the end of the list in the column.
+
+### Using select()
+
+This function is used to select specified columns, essentially subsetting by column.
+
+```{r}
+select(flights, year, month, day)
+# Specify a series of columns to include:
+select(flights, year:day)
+# Specify a series of columns to exclude:
+select(flights, -(year:day))
+```
+
+Within select, there are a number of specifying functions.
+starts_with(): select columns starting with a certain string
+ends_with(): select columns ending with a certain string
+contains(): select columns that contain a certain string
+matches(): select variables that match a regular expression within the string
+num_range(): example: num_range("x", 1:3) matches x1, x2, x3
+
+Rename is a version of select() that will select a column and rename it while conserving its properties within the tibble.
+
+```{r}
+rename(flights, tail_num = tailnum)
+```
+
+everything() can also be used to conserve columns.
+
+```{r}
+select(flights, time_hour, air_time, everything())
+#This reorders the time and air time columns while conserving all the columns afterward.
+```
+
+### Using mutate()
+
+Mutate can be used to calculate new columns
+
+```{r}
+flights_sml <- select(flights, 
+  year:day, 
+  ends_with("delay"), 
+  distance, 
+  air_time
+)
+mutate(flights_sml,
+  gain = dep_delay - arr_delay,
+  speed = distance / air_time * 60
+)
+# If we want to use columns created within the mutate call to create a new calculated column, that can be done with order of operations.
+mutate(flights_sml,
+  gain = dep_delay - arr_delay,
+  hours = air_time / 60,
+  gain_per_hour = gain / hours
+)
+# And if you only want to keep the new variables, use transmutate.
+transmute(flights,
+  gain = dep_delay - arr_delay,
+  hours = air_time / 60,
+  gain_per_hour = gain / hours
+)
+```
+
+Useful functions to use within mutate:
++
+-
+*
+/
+^
+mean(): example x / mean(x)
+sum()
+other aggregate functions
+%/% (integer division)
+%% (remainder)
+example:
+```{r}
+transmute(flights,
+ dep_time,
+ hour = dep_time %/% 100,
+ minute = dep_time %% 100
+)
+```
+log()
+log2()
+log10()
+lead()
+lag()
+example:
+```{r}
+x <- 1:10
+lag(x)
+lead(x)
+```
+cumsum() (cumulative)
+cummean()
+example:
+```{r}
+cumsum(x)
+cummean(x)
+```
+<
+>
+<=
+>=
+!=
+==
+min_rank()
+row_number()
+dense_rank()
+percent_rank()
+cume_dist()

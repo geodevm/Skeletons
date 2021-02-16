@@ -1,0 +1,149 @@
+---
+title: "directories_mgmt"
+author: "geodevm"
+date: "2/13/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+```{r}
+library(here)
+library(readr)
+library(tidyr)
+library(tibble)
+```
+
+## Using here, readr, tibble, and tidyr package to manage directories and data import/export.
+
+By using this package and sending self-contained projects to collaborators, I can avoid the issues that come with needing to set new working directories upon reciept.
+
+You can use various read-in options from the readr package to efficiently read in different data types. Package readr is also imported via the tidyverse package.
+
+```{r}
+# Comma Delimited
+data_frame <- read_csv(here("data", "data_frame.csv"))
+# Semi-colon Delimited: read_csv2()
+# Generalized Delimiter: read_delim(, delim = "")
+# Fixed Width Files: read_fwf()
+# Tab Delimited Files: read_tsv() or read_table()
+# Read Single String: read_file(, locale = default_locale())
+```
+
+You can also use some of these arguments to make imports more specific.
+
+```{r}
+# No header
+read_csv(here("data", "data_frame.csv"), col_names = FALSE)
+# Specified header
+read_csv(here("data", "data_frame.csv"), col_names = c("X", "Y"))
+# Skip lines
+read_csv(here("data", "data_frame.csv"), skip = 1)
+# Subset
+read_csv(here("data", "data_frame.csv"), n_max = 3)
+# Specify NAs
+read_csv(here("data", "data_frame.csv"), na = "D")
+# Parse columns explicitly rather than default col_guess()
+read_csv(here("data", "data_frame.csv"), col_types = cols(letter = col_factor()))
+# Can also use:
+# col_character()
+# col_factor(levels, ordered = FALSE)
+# col_double()
+# col_datetime(format = "")
+# col_date(format = "")
+# col_time(format = "")
+# col_integer()
+# col_logical()
+# col_number() or col_numeric()
+# col_skip()
+# They can also be parsed after the fact with the same endings, with prefix parse (e.g. parse_factor())
+```
+
+Use readr::problems to diagnose any problems with reading in a dataset.
+
+```{r}
+problems(data_frame)
+```
+Converting to tibbles for work in R.
+
+```{r}
+data_tib <- as_tibble(data_frame)
+is_tibble(data_tib)
+```
+
+Subsetting tibbles:
+
+```{r}
+# Return a tibble:
+data_tib[, "letter"]
+# Return a vector
+data_tib[["letter"]]
+data_tib$letter
+```
+
+View tibbles with glimpse()
+
+```{r}
+glimpse(data_tib)
+# Or open in its own window:
+View(data_tib)
+```
+
+Reshape data with tidyr::gather() and tidyr::spread()
+
+```{r}
+# Create a non-tidy tibble to be gathered, with a column specified rather than row per observation:
+gather_tib <- tibble(letter = c("a", "b"), "1900" = 1:2, "2000" = 4:5)
+gather(gather_tib, "1900", "2000", key = "year", value = "number")
+# Create a non-tidy tibble to be spread, with multiple column values in a column:
+spread_tib <- tibble(letter = c("a", "a", "a", "a", "b", "b", "b", "b"),
+                     year = c("1900", "1900", "2000", "2000", "1900", "1900", "2000", "2000"), 
+                     type = c("c", "d", "c", "d", "c", "d", "c", "d"),
+                     count = 1:8)
+spread(spread_tib, type, count)
+```
+
+Manage NA values
+
+```{r}
+# Create a tibble with NA values
+na_tib <- tibble(X = c("a", "b", "c", "d"), Y = c(1, NA, 3, NA))
+# Drop rows with NA values
+drop_na(na_tib, Y)
+# Fill in missing values with most recent non-NA
+fill(na_tib, Y)
+# Replace NAs with a certain value
+replace_na(na_tib, list(Y = 2))
+```
+
+Split cells into multiple columns or combine them.
+
+```{r}
+# Create a tibble:
+sep_tib <- tibble(letter = c("a", "b", "c", "d"), year = c("19/00", "19/10", "19/20", "19/30"))
+# Use separate to separate the year into two parts
+unite_tib <- separate(sep_tib, year, sep = "/", into = c("century", "year"))
+unite_tib
+# Combine those back together with unite
+unite(unite_tib, century, year, col = "year", sep = "")
+```
+
+
+readr also offers a variety of options for exporting data in different formats.
+
+```{r}
+# Comma Delimited
+write_csv(data_frame, "data", na = "NA", append = FALSE)
+# Generalized Delimiter: write_delim(, delim = "")
+# String to File: write_file(data_frame, "data", append = FALSE)
+# Excel csv: write_excel_csv()
+# String Vector to File, Line/Element: write_lines()
+```
+
+Session:
+
+```{r}
+sessionInfo()
+```
